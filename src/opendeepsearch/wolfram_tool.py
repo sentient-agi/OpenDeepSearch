@@ -21,15 +21,10 @@ class WolframAlphaTool(Tool):
         self.app_id = app_id
     
     def setup(self):
-        self.search_tool = WolframAlphaTool(
-            self.app_id,
-        )
-        
-    def forward(self, query: str):
-            
         # Initialize the Wolfram Alpha client
         self.wolfram_client = wolframalpha.Client(self.app_id)
         
+    def forward(self, query: str):
         try:
             # Send the query to Wolfram Alpha
             res = self.wolfram_client.query(query)
