@@ -1,5 +1,5 @@
 from typing import Optional, Dict, Any
-from opendeepsearch.serp_search.serp_search import SerperAPI
+from opendeepsearch.serp_search.serp_search import SerperAPI, DuckDuckGoAPI
 from opendeepsearch.context_building.process_sources_pro import SourceProcessor
 from opendeepsearch.context_building.build_context import build_context
 from litellm import completion
@@ -20,6 +20,7 @@ class OpenDeepSearchAgent:
         temperature: float = 0.2, # Slight variation while maintaining reliability
         top_p: float = 0.3, # Focus on high-confidence tokens
         reranker: Optional[str] = "None", # Optional reranker identifier
+        search_engine: str = "serper" # Default search engine
     ):
         """
         Initialize an OpenDeepSearch agent that combines web search, content processing, and LLM capabilities.
@@ -44,9 +45,13 @@ class OpenDeepSearchAgent:
                 the output more focused on high-probability tokens.
             reranker (str, optional): Identifier for the reranker to use. If not provided,
                 uses the default reranker from SourceProcessor.
+            search_engine (str, default="serper"): The search engine to use ("serper" or "duckduckgo").
         """
-        # Initialize SerperAPI with optional API key
-        self.serp_search = SerperAPI(api_key=serper_api_key) if serper_api_key else SerperAPI()
+        # Initialize search engine based on the search_engine parameter
+        if search_engine == "duckduckgo":
+            self.serp_search = DuckDuckGoAPI(api_key=serper_api_key)
+        else:
+            self.serp_search = SerperAPI(api_key=serper_api_key) if serper_api_key else SerperAPI()
         
         # Update source_processor_config with reranker if provided
         if source_processor_config is None:
