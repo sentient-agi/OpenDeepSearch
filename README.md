@@ -379,3 +379,6 @@ If you use `OpenDeepSearch` in your works, please cite it using the following Bi
 ## Contact 📩
 
 For questions or collaborations, open an issue or reach out to the maintainers.
+
+deRiver  
+meta web front-end development professional 
