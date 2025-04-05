@@ -1,0 +1,1 @@
+python ./evals/eval_tasks.py --parallel-workers=8 --num-trials=1 --eval-tasks=./evals/datasets/frames_test_set.csv
