@@ -26,7 +26,10 @@ class SourceProcessor:
             filter_content=self.filter_content
         )
         self.top_results = top_results
-        self.chunker = Chunker()
+        self.chunker = Chunker(
+            chunk_size=1024,  # 1 KB chunks
+            chunk_overlap=150,  # 256 characters overlap
+        )
         
         # Initialize the appropriate reranker
         if reranker.lower() == "jina":
@@ -41,7 +44,8 @@ class SourceProcessor:
         sources: List[dict], 
         num_elements: int, 
         query: str, 
-        pro_mode: bool = False
+        pro_mode: bool = False,
+        chunk: bool = True
     ) -> List[dict]:
         try:
             valid_sources = self._get_valid_sources(sources, num_elements)
@@ -55,10 +59,10 @@ class SourceProcessor:
                 if not wiki_sources:
                     return sources.data
                 # If Wikipedia article exists, only process that
-                valid_sources = wiki_sources[:1]  # Take only the first Wikipedia source
+                valid_sources = wiki_sources # Take only the first Wikipedia source (why?)
 
             html_contents = await self._fetch_html_contents([s[1]['link'] for s in valid_sources])
-            return self._update_sources_with_content(sources.data, valid_sources, html_contents, query)
+            return self._update_sources_with_content(sources.data, valid_sources, html_contents, query, chunk)
         except Exception as e:
             print(f"Error in process_sources: {e}")
             return sources
@@ -70,12 +74,13 @@ class SourceProcessor:
         raw_contents = await self.scraper.scrape_many(links)
         return [x['no_extraction'].content for x in raw_contents.values()]
 
-    def _process_html_content(self, html: str, query: str) -> str:
+    def _process_html_content(self, html: str, query: str, chunk: bool = True) -> str:
         if not html:
             return ""
         try:
             # Split the HTML content into chunks
-            documents = self.chunker.split_text(html)
+            if chunk:
+                documents = self.chunker.split_text(html)
             
             # Rerank the chunks based on the query
             reranked_content = self.semantic_searcher.get_reranked_documents(
@@ -95,9 +100,10 @@ class SourceProcessor:
         sources: List[dict],
         valid_sources: List[Tuple[int, dict]], 
         html_contents: List[str],
-        query: str
+        query: str,
+        chunk: bool = True
     ) -> List[dict]:
         for (i, source), html in zip(valid_sources, html_contents):
-            source['html'] = self._process_html_content(html, query)
+            source['html'] = self._process_html_content(html, query, chunk)
             # sources[i] = source
         return sources

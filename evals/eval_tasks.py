@@ -7,12 +7,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-import datasets
 import pandas as pd
 from datasets import Dataset
 from dotenv import load_dotenv
 from tqdm import tqdm
-from opendeepsearch import OpenDeepSearchTool
+from opendeepsearch import OpenDeepSearchTool, ListDeepSearchTool
+from opendeepsearch.prompts import MAJORITY_VOTE_PROMPT
 
 from smolagents import (
     AgentError,
@@ -125,14 +125,20 @@ def answer_single_question(example, model, answers_file, action_type, search_mod
         agent = model
     elif action_type == "codeact":
         agent = CodeAgent(
-            tools=[OpenDeepSearchTool(model_name=search_model_id or model.model_id)],
+            tools=[
+                ListDeepSearchTool(model_name=search_model_id or model.model_id), 
+                OpenDeepSearchTool(model_name=search_model_id or model.model_id)],
             model=model,
             additional_authorized_imports=["numpy"],
             max_steps=15,
         )
     elif action_type == "tool-calling":
         agent = ToolCallingAgent(
-            tools=[OpenDeepSearchTool(model_name=search_model_id or model.model_id), PythonInterpreterTool()],
+            tools=[
+                ListDeepSearchTool(model_name=search_model_id or model.model_id), 
+                OpenDeepSearchTool(model_name=search_model_id or model.model_id), 
+                PythonInterpreterTool()
+            ],
             model=model,
             additional_authorized_imports=["numpy"],
             max_steps=15,
@@ -143,26 +149,44 @@ def answer_single_question(example, model, answers_file, action_type, search_mod
     TIMEOUT_SECONDS = 300  # 5 minutes timeout
 
     try:
-        if action_type == "vanilla":
-            def get_vanilla_response():
-                response = agent([{"role": "user", "content": augmented_question}])
-                return response.content, agent.last_output_token_count
-            
-            answer, token_count = run_with_timeout(get_vanilla_response, TIMEOUT_SECONDS)
-            intermediate_steps = answer
-        else:
-            def get_agent_response():
-                response = str(agent.run(augmented_question))
-                token_count = agent.monitor.get_total_token_counts()
-                # Remove memory from logs to make them more compact.
-                for step in agent.memory.steps:
-                    if isinstance(step, ActionStep):
-                        step.agent_memory = None
-                return response, token_count, str(agent.memory.steps)
-            
-            answer, token_count, intermediate_steps = run_with_timeout(get_agent_response, TIMEOUT_SECONDS)
+        answers = []
+        tokens = 0
+        for i in range(os.getenv("MAJORITY_VOTE_COUNT", 1)):
+            if action_type == "vanilla":
+                def get_vanilla_response():
+                    response = agent([{"role": "user", "content": augmented_question}])
+                    return response.content, agent.last_output_token_count
+                
+                answer, tokens = run_with_timeout(get_vanilla_response, TIMEOUT_SECONDS)
+                intermediate_steps = answer
+            else:
+                def get_agent_response():
+                    response = str(agent.run(augmented_question))
+                    token_count = agent.monitor.get_total_token_counts()
+                    # Remove memory from logs to make them more compact.
+                    for step in agent.memory.steps:
+                        if isinstance(step, ActionStep):
+                            step.agent_memory = None
+                    return response, token_count, str(agent.memory.steps)
+                
+                answer, tokens, intermediate_steps = run_with_timeout(get_agent_response, TIMEOUT_SECONDS)
+            answers.append(answer)
+            token_count = tokens
+        if len(answers) > 1:
+            formatted_answers = "\n".join(
+                [f"{i+1}. {a}" for i, a in enumerate(answers)])
 
-        end_time = time.time()
+            user_content = f"""Question: {augmented_question}
+
+            Answers:
+            {formatted_answers}
+
+            Choose the most frequent and relevant answer. Output it verbatim.
+            """
+            messages = [{"role": "system", "content": MAJORITY_VOTE_PROMPT}]
+            messages.append({"role": "user", "content": user_content})
+            answer = model(messages).content
+
     except Exception as e:
         print("Error on ", augmented_question, e)
         intermediate_steps = []

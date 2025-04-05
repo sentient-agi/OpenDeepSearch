@@ -23,6 +23,7 @@ class OpenDeepSearchAgent:
         temperature: float = 0.2, # Slight variation while maintaining reliability
         top_p: float = 0.3, # Focus on high-confidence tokens
         reranker: Optional[str] = "None", # Optional reranker identifier
+        chunk: bool = False # Whether to chunk the content or not
     ):
         """
         Initialize an OpenDeepSearch agent that combines web search, content processing, and LLM capabilities.
@@ -51,6 +52,7 @@ class OpenDeepSearchAgent:
                 the output more focused on high-probability tokens.
             reranker (str, optional): Identifier for the reranker to use. If not provided,
                 uses the default reranker from SourceProcessor.
+            chunk (bool, default=False): Whether to chunk the content or not. If True, the content will be split into smaller segments.
         """
         # Initialize search API based on provider
         self.serp_search = create_search_api(
@@ -74,11 +76,13 @@ class OpenDeepSearchAgent:
         self.temperature = temperature
         self.top_p = top_p
         self.system_prompt = system_prompt
+        self.chunk = chunk
 
         # Configure LiteLLM with OpenAI base URL if provided
         openai_base_url = os.environ.get("OPENAI_BASE_URL")
         if openai_base_url:
             utils.set_provider_config("openai", {"base_url": openai_base_url})
+            
 
     async def search_and_build_context(
         self,
@@ -111,7 +115,8 @@ class OpenDeepSearchAgent:
             sources,
             max_sources,
             query,
-            pro_mode
+            pro_mode,
+            self.chunk
         )
 
         # Build and return context
@@ -122,6 +127,7 @@ class OpenDeepSearchAgent:
         query: str,
         max_sources: int = 2,
         pro_mode: bool = False,
+        **kwargs: Optional[Dict[str, Any]]
     ) -> str:
         """
         Searches for information and generates an AI response to the query.
@@ -142,20 +148,25 @@ class OpenDeepSearchAgent:
         # Get context from search results
         context = await self.search_and_build_context(query, max_sources, pro_mode)
         # Prepare messages for the LLM
-        messages = [
-            {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"}
-        ]
-        # Get completion from LLM
-        response = completion(
-            model=self.model,
-            messages=messages,
-            temperature=self.temperature,
-            top_p=self.top_p
-        )
-
-        return response.choices[0].message.content
-
+        for item in context:
+            user_prompt = f"Context:\n{item}\n\nQuestion: {query}"
+            for key, value in kwargs.items():
+                user_prompt += f"\n{key}: {value}"
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
+            response = completion(
+                model=self.model,
+                messages=messages,
+                temperature=self.temperature,
+                top_p=self.top_p
+            )
+            if "no results" not in response.choices[0].message.content.lower():
+                return response.choices[0].message.content
+        
+        return "No results found."
+    
     def ask_sync(
         self,
         query: str,
