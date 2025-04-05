@@ -4,6 +4,9 @@ import argparse
 from evals.grader_prompts import GRADER_TEMPLATE
 from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 def grade_row(row_data):
     idx, row = row_data
@@ -16,10 +19,10 @@ def grade_row(row_data):
         predicted_answer=predicted_answer,
         target=gold_answer
     )
-    
+    model = os.getenv("LITELLM_EVAL_MODEL_ID", os.getenv("LITELLM_MODEL_ID", "openrouter/google/gemini-2.0-flash-001"))
     try:
         output = litellm.completion(
-            model="openrouter/google/gemini-2.0-flash-001",
+            model=model,
             messages=[{"role": "user", "content": input_prompt}],
             temperature=0.0
         )['choices'][0]['message']['content']
