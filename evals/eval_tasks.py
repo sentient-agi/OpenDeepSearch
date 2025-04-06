@@ -153,8 +153,8 @@ def answer_single_question(example, model, answers_file, action_type, search_mod
     try:
         answers = []
         tokens = 0
-        agent = init_agent()
         for _ in range(majority_votes):
+            agent = init_agent()
             if action_type == "vanilla":
                 def get_vanilla_response():
                     response = agent([{"role": "user", "content": augmented_question}])
