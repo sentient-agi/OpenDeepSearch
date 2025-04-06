@@ -12,7 +12,7 @@ from datasets import Dataset
 from dotenv import load_dotenv
 from tqdm import tqdm
 from opendeepsearch import OpenDeepSearchTool, ListDeepSearchTool, load_config
-from opendeepsearch.prompts import MAJORITY_VOTE_PROMPT
+from opendeepsearch.prompts import MAJORITY_VOTE_PROMPT, REACT_PROMPT
 
 from smolagents import (
     AgentError,
@@ -132,6 +132,7 @@ def answer_single_question(example, model, answers_file, action_type, search_mod
                 model=model,
                 additional_authorized_imports=["numpy", "pandas"],
                 max_steps=15,
+                prompt_templates=REACT_PROMPT
             )
         elif action_type == "tool-calling":
             agent = ToolCallingAgent(
@@ -143,6 +144,7 @@ def answer_single_question(example, model, answers_file, action_type, search_mod
                 model=model,
                 additional_authorized_imports=["numpy", "pandas"],
                 max_steps=15,
+                prompt_templates=REACT_PROMPT,
             )
         return agent
 
