@@ -273,5 +273,5 @@ if __name__ == "__main__":
         parallel_workers=args.parallel_workers,
         search_model_id=args.search_model_id,
         num_trials=args.num_trials,
-        majority_votes=config.get("majority_votes", 1),
+        majority_votes=config.get("majority_vote", 1),
     )

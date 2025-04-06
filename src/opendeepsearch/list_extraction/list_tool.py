@@ -16,6 +16,7 @@ class ListDeepSearchTool(Tool):
         "columns": {
             "type": "array",
             "description": "The columns to include in the dataframe (optional).",
+            "nullable": True,
         },
     }
     output_type = "object"

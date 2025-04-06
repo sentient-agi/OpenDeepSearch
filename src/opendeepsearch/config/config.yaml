@@ -1,7 +1,7 @@
 eval:
   majority_vote: 5
-  temperature: 0.2
   max_tokens: 8192
+  temperature: 0.2
 
 source_processor:
   top_results: 5
