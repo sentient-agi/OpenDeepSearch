@@ -638,6 +638,8 @@ Above examples were using notional tools that might not exist for you. You only 
     Returns an output of type: {{tool.output_type}}
 {%- endfor %}
 
+These tools are already imported and ready to use. You can call them as methods with their respective arguments.
+
 {%- if managed_agents and managed_agents.values() | list %}
 You can also give tasks to team members.
 Calling a team member works the same as for calling a tool: simply, the only argument you can give in the call is 'task', a long string explaining your task.
