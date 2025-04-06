@@ -105,6 +105,24 @@ Harper Lee
 
 ---
 
+If there is no clear majority, or if the answers are too diverse, you should return the one that you would assume is correct from the most frequent ones (or all if none appears more than once).
+
+---
+
+Example 4:
+
+Question: What is the the most popular planet in our solar system among children?
+
+Answers:
+1. Jupiter
+2. Saturn
+3. Jupiter
+4. Earth
+5. Saturn
+
+Output:
+Jupiter or Saturn
+
 Now, follow the same logic for the next question and list of answers.
 """
 

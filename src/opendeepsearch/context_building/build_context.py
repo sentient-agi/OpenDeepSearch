@@ -48,7 +48,7 @@ def extract_answer_box(
 
 def build_context(
     sources_result: Dict,
-) -> str:
+) -> List[str]:
     """
     Build context from search results.
     
@@ -56,7 +56,7 @@ def build_context(
         sources_result: Dictionary containing search results
         
     Returns:
-        A formatted string containing all relevant search results
+        A list of strings representing the context, in order of decreasing trustworthiness.
     """
     try:
         # Build context from different components
@@ -85,4 +85,4 @@ def build_context(
 
     except Exception as e:
         logger.exception(f"An error occurred while building context: {e}")
-        return ""  # Return empty string in case of error
+        return []  # Return empty string in case of error
