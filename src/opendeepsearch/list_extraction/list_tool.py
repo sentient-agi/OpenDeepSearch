@@ -15,7 +15,7 @@ class ListDeepSearchTool(Tool):
         },
         "columns": {
             "type": "array",
-            "description": "The columns to include in the dataframe",
+            "description": "The columns to include in the dataframe (optional).",
         },
     }
     output_type = "object"
@@ -36,7 +36,7 @@ class ListDeepSearchTool(Tool):
         self.searxng_instance_url = searxng_instance_url
         self.searxng_api_key = searxng_api_key
 
-    def forward(self, query: str, columns: list) -> str:
+    def forward(self, query: str, columns: list=["Items"]) -> str:
         """Perform a web search and return the results as a dataframe."""
         return self.search_tool.ask_sync(query, max_sources=2, pro_mode=True, columns=columns)
 

@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 from opendeepsearch.context_scraping.crawl4ai_scraper import WebScraper
 from opendeepsearch.ranking_models.infinity_rerank import InfinitySemanticSearcher
 from opendeepsearch.ranking_models.jina_reranker import JinaReranker
 from opendeepsearch.ranking_models.chunker import Chunker 
+from opendeepsearch.config.core import load_config
 
 @dataclass
 class Source:
@@ -14,7 +15,7 @@ class Source:
 class SourceProcessor:
     def __init__(
         self, 
-        top_results: int = 5,
+        top_results: int = None,
         strategies: List[str] = ["no_extraction"],
         filter_content: bool = True,
         reranker: str = "infinity"
@@ -25,10 +26,12 @@ class SourceProcessor:
             strategies=self.strategies, 
             filter_content=self.filter_content
         )
-        self.top_results = top_results
+        
+        config = load_config("source_processor")
+        self.top_results = top_results or config.get("top_results", 5)
         self.chunker = Chunker(
-            chunk_size=1024,  # 1 KB chunks
-            chunk_overlap=150,  # 256 characters overlap
+            chunk_size=config.get("chunk_size", 1024),
+            chunk_overlap=config.get("chunk_overlap", 256), 
         )
         
         # Initialize the appropriate reranker
@@ -74,13 +77,12 @@ class SourceProcessor:
         raw_contents = await self.scraper.scrape_many(links)
         return [x['no_extraction'].content for x in raw_contents.values()]
 
-    def _process_html_content(self, html: str, query: str, chunk: bool = True) -> str:
+    def _process_html_content(self, html: str, query: str) -> str:
         if not html:
             return ""
         try:
             # Split the HTML content into chunks
-            if chunk:
-                documents = self.chunker.split_text(html)
+            documents = self.chunker.split_text(html)
             
             # Rerank the chunks based on the query
             reranked_content = self.semantic_searcher.get_reranked_documents(
@@ -104,6 +106,6 @@ class SourceProcessor:
         chunk: bool = True
     ) -> List[dict]:
         for (i, source), html in zip(valid_sources, html_contents):
-            source['html'] = self._process_html_content(html, query, chunk)
+            source['html'] = self._process_html_content(html, query) if chunk else [html]
             # sources[i] = source
         return sources

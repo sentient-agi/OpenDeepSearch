@@ -11,7 +11,7 @@ import pandas as pd
 from datasets import Dataset
 from dotenv import load_dotenv
 from tqdm import tqdm
-from opendeepsearch import OpenDeepSearchTool, ListDeepSearchTool
+from opendeepsearch import OpenDeepSearchTool, ListDeepSearchTool, load_config
 from opendeepsearch.prompts import MAJORITY_VOTE_PROMPT
 
 from smolagents import (
@@ -120,7 +120,7 @@ def run_with_timeout(func, timeout):
             return "Timed Out"
 
 
-def answer_single_question(example, model, answers_file, action_type, search_model_id=None):
+def answer_single_question(example, model, answers_file, action_type, search_model_id=None, majority_votes=1):
     if action_type == "vanilla":
         agent = model
     elif action_type == "codeact":
@@ -151,7 +151,7 @@ def answer_single_question(example, model, answers_file, action_type, search_mod
     try:
         answers = []
         tokens = 0
-        for i in range(os.getenv("MAJORITY_VOTE_COUNT", 1)):
+        for _ in range(majority_votes):
             if action_type == "vanilla":
                 def get_vanilla_response():
                     response = agent([{"role": "user", "content": augmented_question}])
@@ -172,9 +172,10 @@ def answer_single_question(example, model, answers_file, action_type, search_mod
                 answer, tokens, intermediate_steps = run_with_timeout(get_agent_response, TIMEOUT_SECONDS)
             answers.append(answer)
             token_count = tokens
+            
         if len(answers) > 1:
             formatted_answers = "\n".join(
-                [f"{i+1}. {a}" for i, a in enumerate(answers)])
+                [f"{i}. {a}" for i, a in enumerate(answers, start=1)])
 
             user_content = f"""Question: {augmented_question}
 
@@ -214,6 +215,7 @@ def answer_questions(
     parallel_workers: int = 32,
     search_model_id: str = None,
     num_trials: int = 1,
+    majority_votes: int = 1,
 ):
     date = date or datetime.date.today().isoformat()
     model_id = model.model_id
@@ -238,7 +240,7 @@ def answer_questions(
 
             with ThreadPoolExecutor(max_workers=parallel_workers) as exe:
                 futures = [
-                    exe.submit(answer_single_question, example, model, file_name, action_type, search_model_id) 
+                    exe.submit(answer_single_question, example, model, file_name, action_type, search_model_id, majority_votes)
                     for example in examples_todo
                 ]
                 for f in tqdm(as_completed(futures), total=len(examples_todo), desc="Processing tasks"):
@@ -249,18 +251,19 @@ def answer_questions(
 
 if __name__ == "__main__":
     args = parse_arguments()
-
+    
+    config = load_config('eval')
     eval_ds = load_eval_dataset(args.eval_tasks)
 
     if args.model_type == "LiteLLMModel":
         model = LiteLLMModel(
             args.model_id,
-            max_completion_tokens=8192,
-            temperature=0.2,
+            max_completion_tokens=config.get("max_tokens", 8192),
+            temperature=config.get("temperature", 0.2),
             # api_key=os.getenv("OPENROUTER_API_KEY"),
         )
     else:
-        model = HfApiModel(args.model_id, provider="together", max_tokens=8192)
+        model = HfApiModel(args.model_id, provider="together", max_tokens=config.get("max_tokens", 8192))
 
     answer_questions(
         eval_ds,
@@ -270,4 +273,5 @@ if __name__ == "__main__":
         parallel_workers=args.parallel_workers,
         search_model_id=args.search_model_id,
         num_trials=args.num_trials,
+        majority_votes=config.get("majority_votes", 1),
     )

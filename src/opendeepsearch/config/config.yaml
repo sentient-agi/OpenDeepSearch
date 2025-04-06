@@ -1,0 +1,9 @@
+eval:
+  majority_vote: 5
+  temperature: 0.2
+  max_tokens: 8192
+
+source_processor:
+  top_results: 5
+  chunk_size: 1024
+  chunk_overlap: 256
