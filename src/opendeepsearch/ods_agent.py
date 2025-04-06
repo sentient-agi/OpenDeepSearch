@@ -172,6 +172,7 @@ class OpenDeepSearchAgent:
         query: str,
         max_sources: int = 2,
         pro_mode: bool = False,
+        **kwargs: Optional[Dict[str, Any]]
     ) -> str:
         """
         Synchronous version of ask() method.
@@ -187,4 +188,4 @@ class OpenDeepSearchAgent:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        return loop.run_until_complete(self.ask(query, max_sources, pro_mode))
+        return loop.run_until_complete(self.ask(query, max_sources, pro_mode, **kwargs))
