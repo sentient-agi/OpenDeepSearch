@@ -660,5 +660,22 @@ If no tool call is needed, use final_answer tool to return your answer.
 
 Before you begin, plan out your actions. Write an algorithms you will follow to solve the task, and list the data you will need to collect. This step is extremely important, as it will help you to avoid mistakes and to be more efficient. Do not skip it.
 
+Example 1: Question: "What country gained independence in the year the US president's wife was born?"
+
+Find out: 
+1. Who the current first lady is
+2. When she was born
+3. Find out which country gained independence in that year"
+
+Example 2: Question: "What is the name of the biggest church in the city where the thirteenth king of Spain died?"
+
+Find out:
+1. Retrieve a list of all kings of Spain by their reign order.
+2. Find out who the thirteenth king of Spain is.
+3. Find out where he died.
+4. Find all churches in that city, and their sizes.
+5. Find the biggest one.
+
+
 Now Begin! If you solve the task correctly, you will receive a reward of $1,000,000.
 """)
