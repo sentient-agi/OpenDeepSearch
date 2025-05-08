@@ -11,6 +11,12 @@ requires-python = ">=3.10"
 readme = "README.md"
 license = {text = "MIT"}
 
+[project.optional-dependencies]
+serpapi = ["google-search-results"]
+dev = ["pytest>=7.0.0", "black>=23.0.0", "ruff>=0.0.1"]
+docs = ["sphinx>=6.0.0", "sphinx-rtd-theme>=1.2.0"]
+all = ["google-search-results", "pytest>=7.0.0", "black>=23.0.0", "ruff>=0.0.1", "sphinx>=6.0.0", "sphinx-rtd-theme>=1.2.0"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
