@@ -6,8 +6,8 @@ authors = [
     {name = "Salaheddin Alzu'bi", email = "salaheddinalzubi@gmail.com"},
 ]
 
-dependencies = ["openai>=1.66.2", "datasets>=3.3.2", "transformers>=4.49.0", "litellm>=1.61.20", "langchain>=0.3.19", "crawl4ai @ git+https://github.com/salzubi401/crawl4ai.git@main", "fasttext-wheel>=0.9.2", "wikipedia-api>=0.8.1", "pillow>=10.4.0", "smolagents>=1.9.2", "gradio==5.20.1"]
-requires-python = ">=3.10"
+dependencies = ["openai>=1.66.2", "datasets>=3.3.2", "transformers>=4.49.0", "litellm>=1.61.20", "langchain>=0.3.19", "crawl4ai @ git+https://github.com/salzubi401/crawl4ai.git@main", "fasttext-wheel>=0.9.2", "wikipedia-api>=0.8.1", "pillow>=10.4.0", "smolagents>=1.9.2", "gradio==5.20.1", "loguru (>=0.7.3,<0.8.0)", "nest-asyncio (>=1.6.0,<2.0.0)", "rich (>=14.0.0,<15.0.0)"]
+requires-python = ">=3.10,<4.0"
 readme = "README.md"
 license = {text = "MIT"}
 
