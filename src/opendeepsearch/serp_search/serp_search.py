@@ -3,6 +3,11 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional, List, TypeVar, Generic, Union
 from abc import ABC, abstractmethod
 
+from rich.panel import Panel
+from rich.tree import Tree
+from rich.console import Console
+from rich.text import Text
+
 import requests
 
 T = TypeVar('T')
@@ -62,6 +67,126 @@ class SearchResult(Generic[T]):
     @property
     def failed(self) -> bool:
         return not self.success
+        
+    def __repr__(self) -> str:
+        if self.success:
+            return f"SearchResult(success={self.success}, data_type={type(self.data).__name__})"
+        else:
+            return f"SearchResult(success={self.success}, error='{self.error}')"
+            
+    def __rich__(self) -> str:
+        """Rich representation for better formatting in rich-enabled environments"""
+        
+        if self.success:
+            if self.data is None:
+                return Panel("[bold green]Success[/bold green]: No data returned", 
+                            title="SearchResult", border_style="green", width=100)
+                
+            if isinstance(self.data, dict):
+                # Create tree structure for search results
+                tree = Tree("[bold green]Search Results[/bold green]")
+                
+                # Organic results
+                organic_results = self.data.get('organic', [])
+                if organic_results:
+                    organic_branch = tree.add(f"[yellow]Organic Results[/yellow] ({len(organic_results)})")
+                    for i, result in enumerate(organic_results[:5]):  # Show first 3 results
+                        title = result.get('title', 'No title')
+                        link = result.get('link', 'No link')
+                        snippet = result.get('snippet', '')
+                        # Truncate snippet if too long
+                        if snippet and len(snippet) > 70:
+                            snippet = snippet[:67] + "..."
+                        
+                        result_text = f"[bold cyan]{title}[/bold cyan]\n[blue]{link[:60]}{'...' if len(link) > 60 else ''}[/blue]"
+                        if snippet:
+                            result_text += f"\n{snippet}"
+                        
+                        organic_branch.add(result_text)
+                    
+                    if len(organic_results) > 5:
+                        organic_branch.add(f"[dim]... and {len(organic_results) - 5} more results[/dim]")
+                
+                # Knowledge Graph
+                if self.data.get('graph'):
+                    graph_branch = tree.add("[yellow]Knowledge Graph[/yellow]")
+                    graph_data = self.data['graph']
+                    
+                    if isinstance(graph_data, dict):
+                        title = graph_data.get('title', 'Unknown')
+                        description = graph_data.get('description', '')
+                        
+                        if description and len(description) > 70:
+                            description = description[:67] + "..."
+                            
+                        graph_branch.add(f"[bold cyan]{title}[/bold cyan]")
+                        if description:
+                            graph_branch.add(description)
+                    else:
+                        graph_branch.add("[italic]Knowledge graph present[/italic]")
+                
+                # Answer Box
+                if self.data.get('answerBox'):
+                    answer_branch = tree.add("[yellow]Answer Box[/yellow]")
+                    answer_data = self.data['answerBox']
+                    
+                    if isinstance(answer_data, dict):
+                        title = answer_data.get('title', '')
+                        answer = answer_data.get('answer', answer_data.get('snippet', ''))
+                        
+                        if answer and len(answer) > 100:
+                            answer = answer[:97] + "..."
+                            
+                        if title:
+                            answer_branch.add(f"[bold cyan]{title}[/bold cyan]")
+                        if answer:
+                            answer_branch.add(answer)
+                    else:
+                        answer_branch.add("[italic]Answer box present[/italic]")
+                
+                # Other sections as compact summaries
+                sections = []
+                
+                # Top Stories
+                top_stories = self.data.get('topStories', [])
+                if top_stories:
+                    sections.append(f"[yellow]Top Stories[/yellow] ({len(top_stories)})")
+                
+                # Images
+                images = self.data.get('images', [])
+                if images:
+                    sections.append(f"[yellow]Images[/yellow] ({len(images)})")
+                
+                # People Also Ask
+                paa = self.data.get('peopleAlsoAsk', [])
+                if paa:
+                    sections.append(f"[yellow]People Also Ask[/yellow] ({len(paa)})")
+                
+                # Related Searches
+                related = self.data.get('relatedSearches', [])
+                if related:
+                    sections.append(f"[yellow]Related Searches[/yellow] ({len(related)})")
+                
+                if sections:
+                    other_branch = tree.add("[yellow]Other Results[/yellow]")
+                    for section in sections:
+                        other_branch.add(section)
+                
+                # Get width of current terminal if possible
+                width = 100  # Default width
+                try:
+                    console = Console()
+                    width = min(console.width - 4, 100)  # Subtract some padding and cap at 100
+                except:
+                    pass
+                
+                return Panel(tree, title="SearchResult", border_style="green", width=width)
+            else:
+                return Panel(f"[bold green]Success[/bold green]: {type(self.data).__name__} returned", 
+                            title="SearchResult", border_style="green", width=100)
+        else:
+            return Panel(f"[bold red]Error[/bold red]: {self.error}", 
+                        title="SearchResult", border_style="red", width=100)
 
 class SearchAPI(ABC):
     """Abstract base class for search APIs"""
